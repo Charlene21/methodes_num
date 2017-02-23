@@ -13,7 +13,6 @@ SimulTrajPoisson<-function(lambda, T)
     
   #génération du vecteur de variables de loi exponentielle
   Exp = rexp(n=1, rate = lambda);  #rate = intensité
-  cat("Exp : ", Exp, "\n")
   Tau = c(Tau, Exp);
 
 
