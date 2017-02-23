@@ -62,15 +62,15 @@ BSCall <- function(S0, r, sigma, T, K){
   
 }
 
-seekRoot<-function(N,lambda,T,S0,mu,delta,K,r){
-  root = uniroot(function(x) truncCall(N,lambda,T,S0,mu,x,delta,K,r) - BSCall(S0,r,x,T,K), lower = -20, upper = 20, tol=1e-9)$root;
+seekRoot<-function(N,lambda,T,S0,mu,delta,K,r,sigma){
+  root = uniroot(function(x) truncCall(N,lambda,T,S0,mu,sigma,delta,K,r) - BSCall(S0,r,x,T,K), lower = -2, upper = 2, tol=1e-9)$root;
   cat("root : ", root, "\n")
   cat("prix du Call européen Merton: " , truncCall(N,lambda,T,S0,mu,root,delta,K,r), "\n");
   cat("prix du Call européen B&S : " , BSCall(S0,r,root,T,K));
   return(root);
 }
 
-traceCourbeVolatilite <- function(N,lambda,T,S0,mu,delta,r){
+traceCourbeVolatilite <- function(N,lambda,T,S0,mu,delta,r, sigma){
   volatilite = c();
   strike = c();
   inf = 0.8*S0;
@@ -78,7 +78,7 @@ traceCourbeVolatilite <- function(N,lambda,T,S0,mu,delta,r){
   for (K in inf:sup){
     cat("K = ", K, "\n");
     strike = c(strike,K);
-    volatilite = c(volatilite, seekRoot(N,lambda,T,S0,mu,delta,K,r));
+    volatilite = c(volatilite, seekRoot(N,lambda,T,S0,mu,delta,K,r,sigma));
   }
   
   cat("strike : ", strike, "\n");
