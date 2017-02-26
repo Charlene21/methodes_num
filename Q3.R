@@ -39,20 +39,33 @@ erreurExacte<-function(S0,K,r,t){
   return (S0 - K*exp(-r*t));
 }
 
-#erreurSimul(10,0.5,20, 100,0.4 , 0, 0.25, 0.02,80, 0.01)
 erreurSimul<-function(N,lambda,t, S0, mu, sigma, delta,K, r){
   put = truncPut(N,lambda,t, S0, mu, sigma, delta,K, r);
   call = truncCall(N,lambda,t, S0, mu, sigma, delta,K, r);
-  cat("put = ", put, "\n");
-  cat("call = ", call, "\n");
+  cat("N = ", N, " call = ", call, "\nPut : ", put, "\n");
   return (call - put);
 }
 
-comparaisonErreur <- function(N,lambda,t, S0, mu, sigma, delta,K, r){
-  erreur_sim = erreurSimul(N,lambda,t, S0, mu, sigma, delta,K, r);
-  erreur_exacte = erreurExacte(S0,K,r,t);
+comparaisonErreur <- function(lambda,T, S0, mu, sigma, delta,K, r, tolerance = 0.00001){
+  N = 0;
+  erreur_sim = erreurSimul(N,lambda,T, S0, mu, sigma, delta,K, r);
+  erreur_exacte = erreurExacte(S0,K,r,T);
+  diff = erreur_sim - erreur_exacte;
+  
+  while(abs(diff) > tolerance){
+    N = N+1;
+    erreur_sim = erreurSimul(N,lambda,T, S0, mu, sigma, delta,K, r);
+    erreur_exacte = erreurExacte(S0,K,r,T);
+    diff = erreur_sim - erreur_exacte;
+    
+  }
+  
+  call = truncCall(N,lambda,T,S0,mu,sigma,delta,K,r);
+  put = truncPut(N,lambda,T,S0,mu,sigma,delta,K,r);
   cat("erreur simulée : ", erreur_sim, "\n");
   cat("erreur exacte : ", erreur_exacte, "\n");
+  
+  return(N);
 
 }
 
@@ -62,7 +75,8 @@ BSCall <- function(S0, r, sigma, T, K){
   
 }
 
-seekRoot<-function(N,lambda,T,S0,mu,delta,K,r,sigma){
+seekRoot<-function(lambda,T,S0,mu,delta,K,r,sigma, tolerance = 0.00001){
+  N = comparaisonErreur(lambda,T, S0, mu, sigma, delta,K, r, tolerance);
   root = uniroot(function(x) truncCall(N,lambda,T,S0,mu,sigma,delta,K,r) - BSCall(S0,r,x,T,K), lower = -2, upper = 2, tol=1e-9)$root;
   cat("root : ", root, "\n")
   cat("prix du Call européen Merton: " , truncCall(N,lambda,T,S0,mu,root,delta,K,r), "\n");
@@ -70,7 +84,7 @@ seekRoot<-function(N,lambda,T,S0,mu,delta,K,r,sigma){
   return(root);
 }
 
-traceCourbeVolatilite <- function(N,lambda,T,S0,mu,delta,r, sigma){
+traceCourbeVolatilite <- function(lambda,T,S0,mu,delta,r, sigma){
   volatilite = c();
   strike = c();
   inf = 0.8*S0;
@@ -78,11 +92,8 @@ traceCourbeVolatilite <- function(N,lambda,T,S0,mu,delta,r, sigma){
   for (K in inf:sup){
     cat("K = ", K, "\n");
     strike = c(strike,K);
-    volatilite = c(volatilite, seekRoot(N,lambda,T,S0,mu,delta,K,r,sigma));
+    volatilite = c(volatilite, seekRoot(lambda,T,S0,mu,delta,K,r,sigma));
   }
-  
-  cat("strike : ", strike, "\n");
-  cat("vol : ", volatilite, "\n");
   
   plot(x=strike,y=volatilite,main="Volatilité implicite en fonction du strike", type="l");
 }

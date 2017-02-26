@@ -1,16 +1,16 @@
-#Question a
-#SimulModele(0.5,20,0,0.02,0.02,50,100,0.3,0.2,0.5,0)
+#Simulation du processus de Lévy de type diffusion à sauts
 SimulModele<-function(lambda, T, mu, delta, sigma, pas,S0,p, lambda1, lambda2,bool){
+  
+  #on pose gamma tel qu'il est donné en exercice 3
   gamma = lambda * (1-exp(mu+delta*delta/2)) - (sigma*sigma)/2 + 0.01;
-  cat("gamma : ", gamma);
+  
+  #Simulation du processus de Poisson composé
   params = SimulTrajPoissonCompose(lambda, T, mu, delta,p, lambda1, lambda2,bool);
   Tn = params$Tn
   Tn=c(0,Tn,T)
   X_compose = params$PoissonCompose
-  #cat("length : ", length(Tn), "\n")
-  cat("Tn : " , Tn, "\n")
-  #cat("X_compose : ", X_compose, "\n")
   
+  #Discrétisation
   Tn_recompose = c()
   for (i in 1:(length(Tn)-1)){
     pas_temps = (Tn[i+1]-Tn[i])/pas;
@@ -22,8 +22,9 @@ SimulModele<-function(lambda, T, mu, delta, sigma, pas,S0,p, lambda1, lambda2,bo
   }
   
   Tn_recompose = c(Tn_recompose,T)
+  
+  #On remet les dates dans l'ordre
   Tn_recompose <- sort(Tn_recompose)
-  #cat("Tn_recompose : ", Tn_recompose, "\n");
   
   X = c()
   j=0;
@@ -31,6 +32,7 @@ SimulModele<-function(lambda, T, mu, delta, sigma, pas,S0,p, lambda1, lambda2,bo
  
   Wt = 0;
 
+  #Simulation du processus de Lévy
   for(i in 1:length(Tn_recompose)){
     
     if(Tn_recompose[i] %in% Tn && i != length(Tn_recompose)){
@@ -42,9 +44,6 @@ SimulModele<-function(lambda, T, mu, delta, sigma, pas,S0,p, lambda1, lambda2,bo
     X_t = gamma*(Tn_recompose[i]/T) + sigma*Wt + X_compose[j];
     X = c(X,X_t);
   }
-  
-
- # cat("X : ", X, "\n");
   
   St = c();
   for (i in 1:length(X)){
