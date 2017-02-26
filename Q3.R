@@ -4,11 +4,11 @@ gput <- function(x,sigma,K){
   return (K*pnorm(d1) - x*exp(sigma*sigma/2)*pnorm(d2));
 }
 
+#Calcule le prix du Put tronqué 
 truncPut <- function(N,lambda,t, S0, mu, sigma, delta,K, r){
   sum = 0;
   gamma = lambda * (1-exp(mu+delta*delta/2)) - (sigma*sigma)/2 +r;
   for (k in 0:N){
-    #cat("x = ",S0*exp(gamma*t+k*mu), "\n");
     terme = (((lambda*t)^k)/factorial(k)) * gput(S0*exp(gamma*t+k*mu), sqrt(sigma*sigma*t+k*delta*delta),K);
     sum = sum + terme;
   }
@@ -22,11 +22,11 @@ gcall <- function(x,sigma,K){
   return (x*exp((sigma*sigma)/2)*pnorm(d2) - K*pnorm(d1));
 }
 
+#Calcule le prix du Call tronqué
 truncCall <- function(N,lambda,T, S0, mu, sigma, delta,K, r){
   sum = 0;
   gamma = lambda * (1-exp(mu+(delta*delta)/2)) - (sigma*sigma)/2 +r;
   for (k in 0:N){
-    #cat((lambda*T)^k, "\n")
     terme = (((lambda*T)^k)/factorial(k)) * gcall(S0*exp(gamma*T+k*mu), sqrt(sigma*sigma*T+k*delta*delta),K);
     sum = sum + terme;
   }
@@ -35,17 +35,19 @@ truncCall <- function(N,lambda,T, S0, mu, sigma, delta,K, r){
   return(sum);
 }
 
+#Erreur exacte entre le Call et le Put
 erreurExacte<-function(S0,K,r,t){
   return (S0 - K*exp(-r*t));
 }
 
+#Erreur entre le Call et le Put tronqués
 erreurSimul<-function(N,lambda,t, S0, mu, sigma, delta,K, r){
   put = truncPut(N,lambda,t, S0, mu, sigma, delta,K, r);
   call = truncCall(N,lambda,t, S0, mu, sigma, delta,K, r);
-  cat("N = ", N, " call = ", call, "\nPut : ", put, "\n");
   return (call - put);
 }
 
+#Renvoie le k optimal pour une bonne troncature de la série
 comparaisonErreur <- function(lambda,T, S0, mu, sigma, delta,K, r, tolerance = 0.00001){
   N = 0;
   erreur_sim = erreurSimul(N,lambda,T, S0, mu, sigma, delta,K, r);
@@ -53,44 +55,45 @@ comparaisonErreur <- function(lambda,T, S0, mu, sigma, delta,K, r, tolerance = 0
   diff = erreur_sim - erreur_exacte;
   
   while(abs(diff) > tolerance){
-    N = N+1;
     erreur_sim = erreurSimul(N,lambda,T, S0, mu, sigma, delta,K, r);
     erreur_exacte = erreurExacte(S0,K,r,T);
     diff = erreur_sim - erreur_exacte;
-    
+    N = N+1;
   }
   
   call = truncCall(N,lambda,T,S0,mu,sigma,delta,K,r);
   put = truncPut(N,lambda,T,S0,mu,sigma,delta,K,r);
-  cat("erreur simulée : ", erreur_sim, "\n");
-  cat("erreur exacte : ", erreur_exacte, "\n");
+  #cat("Prix du call : ", call, "\n");
   
   return(N);
 
 }
 
+#Formule pour le Call de BS
 BSCall <- function(S0, r, sigma, T, K){
   
   return(exp(-r*T)*gcall(S0*exp((r-(sigma*sigma)/2)*T),sigma*sqrt(T),K));
   
 }
 
+#Recherche de la volatilité implicite pour que les Calls de Merton et de BS soient égaux
 seekRoot<-function(lambda,T,S0,mu,delta,K,r,sigma, tolerance = 0.00001){
   N = comparaisonErreur(lambda,T, S0, mu, sigma, delta,K, r, tolerance);
   root = uniroot(function(x) truncCall(N,lambda,T,S0,mu,sigma,delta,K,r) - BSCall(S0,r,x,T,K), lower = -2, upper = 2, tol=1e-9)$root;
   cat("root : ", root, "\n")
-  cat("prix du Call européen Merton: " , truncCall(N,lambda,T,S0,mu,root,delta,K,r), "\n");
-  cat("prix du Call européen B&S : " , BSCall(S0,r,root,T,K));
+  cat("prix du Call européen Merton: " , truncCall(N,lambda,T,S0,mu,sigma,delta,K,r), "\n");
+  cat("prix du Call européen B&S : " , BSCall(S0,r,root,T,K), "\n");
   return(root);
 }
 
+#Trace la courbe de la volatilité implicite en fonction du strike
 traceCourbeVolatilite <- function(lambda,T,S0,mu,delta,r, sigma){
   volatilite = c();
   strike = c();
   inf = 0.8*S0;
   sup = 1.2*S0;
   for (K in inf:sup){
-    cat("K = ", K, "\n");
+    cat("K = ", K , "\n")
     strike = c(strike,K);
     volatilite = c(volatilite, seekRoot(lambda,T,S0,mu,delta,K,r,sigma));
   }
